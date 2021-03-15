@@ -1,0 +1,71 @@
+---
+
+- hosts: 'webservers'
+  tasks:
+    - name: 'Install the required packages for wordpress'
+      apt:
+        name: 
+          - 'nginx'
+          - 'mysql-server'
+          - 'php-fpm'
+          - 'php-mysql'
+        state: 'present'
+        update_cache: true
+      become: true
+
+    - name: 'Install pymysql for MySQL'
+      pip:
+        name: 'pymysql'
+        state: present
+      become: true
+
+    - name: 'Download and extract Wordpress files'
+      unarchive:
+        src: 'https://wordpress.org/latest.zip'
+        dest: '/opt'
+        remote_src: true
+        owner: 'www-data'
+        group: 'www-data'
+      become: true
+
+    # - name: 'Set mysql root user password'
+    #   mysql_user:
+    #     name: 'root'
+    #     password: 'RootPass1234!'
+    #     login_unix_socket: '/var/run/mysqld/mysqld.sock'
+    #   become: true
+
+    - name: 'Create wordpress DB'
+      mysql_db:
+        name: 'wordpress'
+        state: 'present'
+        login_user: 'root'
+        login_password: 'RootPass1234!'
+
+    - name: 'Create wordpress DB user'
+      mysql_user:
+        name: 'wordpress'
+        password: 'WordpressPass1234!'
+        priv: '*.*:ALL'
+        login_user: 'root'
+        login_password: 'RootPass1234!'
+
+    - name: 'Upload wp-config.php file'
+      copy:
+        src: 'wp-config.php'
+        dest: '/opt/wordpress/wp-config.php'
+        owner: 'www-data'
+        group: 'www-data'
+      become: true
+
+    - name: 'Upload nginx config'
+      copy:
+        src: 'nginx.conf'
+        dest: '/etc/nginx/sites-enabled/default'
+      become: true
+
+    - name: 'Restart nginx service'
+      service: 
+        name: 'nginx'
+        state: 'restarted'
+      become: true
